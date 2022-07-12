@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
+	"k8s.io/utils/strings/slices"
 )
 
 func getConfigDir() string {
@@ -71,7 +72,7 @@ func main() {
 
 		filePath := path.Join(configDir, filename)
 		log.Printf("Writing file %s to path %s", filename, filePath)
-		if err := ioutil.WriteFile(filePath, fileContent, 0); err != nil {
+		if err := ioutil.WriteFile(filePath, fileContent, 0777); err != nil {
 			return c.Status(400).JSON(&fiber.Map{
 				"message": "Invalid filetype",
 				"status":  400,
@@ -85,9 +86,24 @@ func main() {
 
 	app.Post("/config/:name", func(c *fiber.Ctx) error {
 		filename := c.Params("name")
-		fileContent := []byte(`{\n  "hello": "World!"\n}`)
+		fileContent := []byte("{\n  \"hello\": \"World!\"\n}")
 		filePath := path.Join(configDir, filename)
-		if err := ioutil.WriteFile(filePath, fileContent, 0); err != nil {
+		ext := path.Ext(filename)
+
+		if ext == "" {
+			ext = "empty"
+		}
+
+		validExt := []string{".json", ".yaml", ".yml"}
+
+		if !slices.Contains(validExt, ext) {
+			return c.Status(400).JSON(&fiber.Map{
+				"message": fmt.Sprint("Invalid filetype got [", ext, "] expected [", strings.Join(validExt, ", "), "]"),
+				"status":  400,
+			})
+		}
+
+		if err := ioutil.WriteFile(filePath, fileContent, 0777); err != nil {
 			return c.Status(400).JSON(&fiber.Map{
 				"message": "Invalid filetype",
 				"status":  400,

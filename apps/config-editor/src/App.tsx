@@ -49,9 +49,8 @@ export const App: React.FC = () => {
     },
     {
       onSuccess() {
-        notification.open({
+        notification.success({
           message: `Config ${selectedConfig} updated!`,
-          type: "success",
           maxCount: 3,
           duration: 3,
         });
@@ -59,18 +58,34 @@ export const App: React.FC = () => {
       onError(error) {
         const message =
           error instanceof Error ? error.message : "Unknown error";
-
-        notification.open({
+        notification.error({
           message: `Unable to update config because of: [${message}]`,
-          type: "error",
           duration: 3,
         });
       },
     }
   );
 
-  const createConfigMut = useMutation((configName: string) =>
-    createConfig(configName)
+  const createConfigMut = useMutation(
+    (configName: string) => createConfig(configName),
+    {
+      onSuccess(_, name) {
+        configNames.refetch();
+        notification.success({
+          message: `Successfully created config ${name}!`,
+          duration: 3,
+        });
+        setCreateConfigName("");
+      },
+      onError(error) {
+        const message =
+          error instanceof Error ? error.message : "Unknown error";
+        notification.error({
+          message,
+          duration: 3,
+        });
+      },
+    }
   );
 
   const ConfigSelect = () => {
@@ -117,13 +132,13 @@ export const App: React.FC = () => {
           {/* @ts-ignore */}
           <Input
             placeholder="Config name"
-            onChange={(value: string) => console.log(value)}
+            onChange={(e: any) => setCreateConfigName(e.target.value)}
             value={createConfigName}
           />
           {/* @ts-ignore */}
           <Button
             className="bg-white"
-            onClick={createConfigMut.mutate(createConfigName)}
+            onClick={() => createConfigMut.mutate(createConfigName)}
           >
             Create config
           </Button>
