@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "go run main.go",
+    "dev": "air",
     "lint": "go lint",
     "test": "go test"
   }
