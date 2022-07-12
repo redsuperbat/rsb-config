@@ -1,0 +1,10 @@
+{
+  "name": "config",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "go run main.go",
+    "lint": "go lint",
+    "test": "go test"
+  }
+}
