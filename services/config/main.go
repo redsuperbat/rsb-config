@@ -34,7 +34,7 @@ func main() {
 
 	app := fiber.New()
 
-	app.Static("/", "./public")
+	app.Static("/", "./dist")
 
 	app.Get("/configNames", func(c *fiber.Ctx) error {
 		files, _ := ioutil.ReadDir(configDir)

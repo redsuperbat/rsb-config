@@ -4,7 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "air",
+    "build": "scripts/build.mjs",
     "lint": "go lint",
     "test": "go test"
+  },
+  "dependencies": {
+    "config-editor": "*"
   }
 }

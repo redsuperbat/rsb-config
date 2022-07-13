@@ -12,6 +12,8 @@ FROM alpine:3.14
 
 WORKDIR /app
 
+COPY dist dist
+
 COPY --from=compiler /app/config .
 
 ENTRYPOINT ["./config"]

@@ -100,6 +100,7 @@ export const App: React.FC = () => {
     return (
       <Select
         placeholder="Select config name"
+        className="w-40"
         onSelect={onConfigSelected}
         value={selectedConfig}
       >
@@ -132,7 +133,7 @@ export const App: React.FC = () => {
           {/* @ts-ignore */}
           <Input
             placeholder="Config name"
-            onChange={(e: any) => setCreateConfigName(e.target.value)}
+            onChange={(e: any) => setCreateConfigName(e?.target?.value)}
             value={createConfigName}
           />
           {/* @ts-ignore */}
@@ -148,7 +149,7 @@ export const App: React.FC = () => {
         <Button
           className="bg-white"
           loading={setConfig.isLoading}
-          onClick={setConfig.mutate}
+          onClick={() => setConfig.mutate()}
         >
           Update config
         </Button>
