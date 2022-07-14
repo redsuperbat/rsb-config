@@ -175,7 +175,6 @@ func main() {
 			}
 		}
 		return c.Status(200).JSON(clientTokens)
-
 	})
 
 	authGroup := app.Group("/auth")
