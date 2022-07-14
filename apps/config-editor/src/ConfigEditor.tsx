@@ -1,5 +1,6 @@
 import Editor from "@monaco-editor/react";
-import { Button, Input, notification, Select, Spin } from "antd";
+import { Button, notification, Select, Spin } from "antd";
+import Input from "antd/lib/input/Input";
 import { editor } from "monaco-editor";
 import { useRef, useState } from "react";
 import { useMutation, useQuery } from "react-query";
@@ -130,7 +131,6 @@ export const ConfigEditor = () => {
         <ConfigSelect />
 
         <div className="flex">
-          {/* @ts-ignore */}
           <Input
             placeholder="Config name"
             onChange={(e: any) => setCreateConfigName(e?.target?.value)}

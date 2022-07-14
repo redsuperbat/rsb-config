@@ -1,4 +1,7 @@
-import { Button, Form, Input } from "antd";
+import { Form } from "antd";
+import Button from "antd/lib/button";
+import Input from "antd/lib/input/Input";
+
 import { login } from "./api";
 import { Token } from "./token";
 
@@ -37,6 +40,7 @@ export const Login = ({ onLogin }: { onLogin: (token: string) => void }) => {
             <Input.Password />
           </Form.Item>
           <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
+            {/* @ts-ignore */}
             <Button htmlType="submit">Submit</Button>
           </Form.Item>
         </Form>
