@@ -1,3 +1,5 @@
+import { Token } from "./token";
+
 type ErrorMsg = {
   message: string;
   code: number;
@@ -17,8 +19,13 @@ const baseFetch = async <T = unknown>(
         ? body
         : JSON.stringify(body),
     method,
+    headers: {
+      Authorization: `Bearer ${Token.get()}`,
+      "Content-Type": "application/json",
+    },
   });
   const data = (await res.json()) as T;
+
   if (!res.ok) {
     let message = "Unknown error occurred!";
     if (isErrorMsg(data)) {
@@ -26,6 +33,7 @@ const baseFetch = async <T = unknown>(
     }
     throw new Error(message);
   }
+
   return data;
 };
 
@@ -41,13 +49,19 @@ const Fetch = {
   },
 } as const;
 
-export const getConfigNames = () => Fetch.get<string[]>("/configNames");
+export const getConfigNames = () => Fetch.get<string[]>("/api/configNames");
 
 export const getConfigByName = (configName: string) =>
-  Fetch.get<string>(`/config/${configName}`);
+  Fetch.get<string>(`/api/config/${configName}`);
 
 export const setConfigByName = (configName: string, config: string) =>
-  Fetch.put(`/config/${configName}`, config);
+  Fetch.put(`/api/config/${configName}`, config);
 
 export const createConfig = (configName: string) =>
-  Fetch.post(`/config/${configName}`);
+  Fetch.post(`/api/config/${configName}`);
+
+export const login = (username: string, password: string) =>
+  Fetch.post<{ token: string }>("/auth/login", {
+    username,
+    password,
+  });
