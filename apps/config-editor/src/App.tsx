@@ -1,13 +1,13 @@
-import React, { useState } from "react";
+import React from "react";
 import { ConfigEditor } from "./ConfigEditor";
 import { Login } from "./Login";
-import { Token } from "./token";
+import { TokenStore } from "./token";
 
 export const App: React.FC = () => {
-  const [token, setToken] = useState(Token.get());
+  const [token, setToken] = React.useState(TokenStore.get());
 
   if (!token) {
-    return <Login onLogin={setToken} />;
+    return <Login onLogin={(it) => setToken(it)} />;
   }
 
   return <ConfigEditor />;

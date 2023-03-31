@@ -1,9 +1,9 @@
-export const Token = {
-  token: "",
+export const TokenStore = {
   get() {
-    return this.token;
+    const token = localStorage.getItem("token");
+    return token ?? "";
   },
   set(token: string) {
-    this.token = token;
+    localStorage.setItem("token", token);
   },
 };

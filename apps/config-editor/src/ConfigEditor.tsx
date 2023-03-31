@@ -1,7 +1,10 @@
 import Editor from "@monaco-editor/react";
-import { Button, notification, Select, Spin } from "antd";
-import Input from "antd/lib/input/Input";
 import { editor } from "monaco-editor";
+import { Button } from "primereact/button";
+import { Dropdown } from "primereact/dropdown";
+import { InputText } from "primereact/inputtext";
+import { ProgressSpinner } from "primereact/progressspinner";
+import { Toast } from "primereact/toast";
 import { useRef, useState } from "react";
 import { useMutation, useQuery } from "react-query";
 import {
@@ -10,10 +13,10 @@ import {
   getConfigNames,
   setConfigByName,
 } from "./api";
-const { Option } = Select;
 
 export const ConfigEditor = () => {
   const editorRef = useRef<editor.ICodeEditor>();
+  const toast = useRef<Toast>(null);
   const [value, setValue] = useState("");
   const [selectedConfig, setSelectedConfig] = useState<string>();
   const [createConfigName, setCreateConfigName] = useState<string>("");
@@ -29,13 +32,9 @@ export const ConfigEditor = () => {
     }
   );
 
-  const onConfigSelected = (value: string) => {
-    setSelectedConfig(value);
-  };
-
   const configNames = useQuery("config-names", getConfigNames, {
     onSuccess(data) {
-      onConfigSelected(data[0]);
+      setSelectedConfig(data[0]);
     },
   });
   // Mutations
@@ -50,18 +49,21 @@ export const ConfigEditor = () => {
     },
     {
       onSuccess() {
-        notification.success({
-          message: `Config ${selectedConfig} updated!`,
-          maxCount: 3,
-          duration: 3,
+        toast?.current?.show({
+          severity: "success",
+          summary: "Success",
+          detail: `Config ${selectedConfig} updated!`,
+          life: 3000,
         });
       },
       onError(error) {
         const message =
           error instanceof Error ? error.message : "Unknown error";
-        notification.error({
-          message: `Unable to update config because of: [${message}]`,
-          duration: 3,
+        toast?.current?.show({
+          severity: "error",
+          summary: "Error",
+          detail: `Unable to update config because of: [${message}]`,
+          life: 3000,
         });
       },
     }
@@ -72,18 +74,23 @@ export const ConfigEditor = () => {
     {
       onSuccess(_, name) {
         configNames.refetch();
-        notification.success({
-          message: `Successfully created config ${name}!`,
-          duration: 3,
+        toast?.current?.show({
+          severity: "success",
+          summary: "Success",
+          detail: `Successfully created config ${name}!`,
+          life: 3000,
         });
+
         setCreateConfigName("");
       },
       onError(error) {
         const message =
           error instanceof Error ? error.message : "Unknown error";
-        notification.error({
-          message,
-          duration: 3,
+        toast?.current?.show({
+          severity: "error",
+          summary: "Error",
+          detail: message,
+          life: 3000,
         });
       },
     }
@@ -91,7 +98,13 @@ export const ConfigEditor = () => {
 
   const ConfigSelect = () => {
     if (configNames.isLoading) {
-      return <Spin />;
+      return (
+        <ProgressSpinner
+          style={{ width: "25px", height: "25px" }}
+          strokeWidth="8"
+          animationDuration=".5s"
+        />
+      );
     }
 
     if (!configNames.data) {
@@ -99,19 +112,16 @@ export const ConfigEditor = () => {
     }
 
     return (
-      <Select
+      <Dropdown
+        value={selectedConfig}
+        onChange={(e) => setSelectedConfig(e.value)}
+        options={configNames.data.map((it) => ({
+          label: it,
+          value: it,
+        }))}
         placeholder="Select config name"
         className="w-40"
-        onSelect={onConfigSelected}
-        value={selectedConfig}
-      >
-        {configNames.data.map((name) => (
-          // @ts-ignore
-          <Option key={name} value={name}>
-            {name}
-          </Option>
-        ))}
-      </Select>
+      />
     );
   };
 
@@ -127,27 +137,25 @@ export const ConfigEditor = () => {
 
   return (
     <div className="p-2 bg-slate-100">
+      <Toast ref={toast} />
       <header className="flex mb-2 justify-between">
         <ConfigSelect />
 
-        <div className="flex">
-          <Input
+        <div className="flex gap-1">
+          <InputText
             placeholder="Config name"
-            onChange={(e: any) => setCreateConfigName(e?.target?.value)}
+            onChange={(e) => setCreateConfigName(e.target.value)}
             value={createConfigName}
           />
-          {/* @ts-ignore */}
           <Button
-            className="bg-white"
+            loading={createConfigMut.isLoading}
             onClick={() => createConfigMut.mutate(createConfigName)}
           >
             Create config
           </Button>
         </div>
 
-        {/* @ts-ignore */}
         <Button
-          className="bg-white"
           loading={setConfig.isLoading}
           onClick={() => setConfig.mutate()}
         >
@@ -158,8 +166,8 @@ export const ConfigEditor = () => {
         <Editor
           height="90vh"
           defaultLanguage="json"
-          defaultValue={value}
           value={value}
+          defaultValue={value}
           onMount={handleEditorDidMount}
         />
       </div>

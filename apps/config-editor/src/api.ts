@@ -1,4 +1,4 @@
-import { Token } from "./token";
+import { TokenStore } from "./token";
 
 type ErrorMsg = {
   message: string;
@@ -20,7 +20,7 @@ const baseFetch = async <T = unknown>(
         : JSON.stringify(body),
     method,
     headers: {
-      Authorization: `Bearer ${Token.get()}`,
+      Authorization: `Bearer ${TokenStore.get()}`,
       "Content-Type": "application/json",
     },
   });
@@ -51,8 +51,17 @@ const Fetch = {
 
 export const getConfigNames = () => Fetch.get<string[]>("/api/configNames");
 
-export const getConfigByName = (configName: string) =>
-  Fetch.get<string>(`/api/config/${configName}`);
+export const getConfigByName = async (configName: string) => {
+  const res = await fetch(`/api/config/${configName}`, {
+    headers: {
+      Authorization: `Bearer ${TokenStore.get()}`,
+    },
+  });
+  if (!res.ok) {
+    throw new Error("Bad request");
+  }
+  return res.text();
+};
 
 export const setConfigByName = (configName: string, config: string) =>
   Fetch.put(`/api/config/${configName}`, config);
@@ -60,7 +69,7 @@ export const setConfigByName = (configName: string, config: string) =>
 export const createConfig = (configName: string) =>
   Fetch.post(`/api/config/${configName}`);
 
-export const login = (username: string, password: string) =>
+export const loginApi = (username: string, password: string) =>
   Fetch.post<{ token: string }>("/auth/login", {
     username,
     password,

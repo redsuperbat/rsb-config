@@ -1,49 +1,46 @@
-import { Form } from "antd";
-import Button from "antd/lib/button";
-import Input from "antd/lib/input/Input";
+import { Button } from "primereact/button";
+import { InputText } from "primereact/inputtext";
+import { useState } from "react";
+import { loginApi } from "./api";
+import { TokenStore } from "./token";
 
-import { login } from "./api";
-import { Token } from "./token";
+export const Login = (props: { onLogin: (token: string) => void }) => {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
-export const Login = ({ onLogin }: { onLogin: (token: string) => void }) => {
-  const onFinish = async (values: { password: string; username: string }) => {
-    const { password, username } = values;
-    const res = await login(username, password);
-    Token.set(res.token);
-    onLogin(res.token);
+  const onFinish = async () => {
+    const res = await loginApi(username, password);
+    TokenStore.set(res.token);
+    props.onLogin(res.token);
   };
 
   return (
     <div className="grid place-items-center h-full">
-      <div className="flex flex-col p-4 shadow-md bg-white rounded">
+      <div className="flex flex-col p-4 shadow-md bg-white rounded space-y-2">
         <h1 className="font-bold text-lg">Login</h1>
-        <Form
-          name="basic"
-          labelCol={{ span: 8 }}
-          wrapperCol={{ span: 16 }}
-          initialValues={{ remember: true }}
-          onFinish={onFinish}
-          autoComplete="off"
-        >
-          <Form.Item
-            label="Username"
-            name="username"
-            rules={[{ required: true, message: "Please input your username!" }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            label="Password"
-            name="password"
-            rules={[{ required: true, message: "Please input your password!" }]}
-          >
-            <Input.Password />
-          </Form.Item>
-          <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
-            {/* @ts-ignore */}
-            <Button htmlType="submit">Submit</Button>
-          </Form.Item>
-        </Form>
+        <div className="p-inputgroup">
+          <span className="p-inputgroup-addon">
+            <i className="pi pi-user"></i>
+          </span>
+          <InputText
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Username"
+          />
+        </div>
+        <div className="p-inputgroup">
+          <span className="p-inputgroup-addon">
+            <i className="pi pi-lock"></i>
+          </span>
+          <InputText
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+            type="password"
+          />
+        </div>
+
+        <Button onClick={() => onFinish()}>Submit</Button>
       </div>
     </div>
   );

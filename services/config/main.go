@@ -44,6 +44,10 @@ func resp(c *fiber.Ctx, code int, messages ...string) error {
 
 func authMiddleware(c *fiber.Ctx) error {
 	authHeader := c.GetReqHeaders()["Authorization"]
+	if authHeader == "" {
+		return resp(c, 401)
+	}
+
 	token := authHeader[len("Bearer "):]
 	if token == "" {
 		return resp(c, 401)
@@ -187,6 +191,9 @@ func main() {
 		c.BodyParser(&Creds)
 		username := os.Getenv("RSB_ADMIN_USERNAME")
 		password := os.Getenv("RSB_ADMIN_PASSWORD")
+
+		log.Println("User", Creds.Username, "logging in...")
+		log.Println(Creds, username, password)
 
 		if Creds.Password != password {
 			return resp(c, 401)
