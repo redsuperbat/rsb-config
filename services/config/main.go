@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -78,7 +77,7 @@ func main() {
 	api.Use(authMiddleware)
 
 	api.Get("/configNames", func(c *fiber.Ctx) error {
-		files, _ := ioutil.ReadDir(configDir)
+		files, _ := os.ReadDir(configDir)
 		configNames := make([]string, len(files))
 		for idx, file := range files {
 			filename := strings.TrimSpace(file.Name())
@@ -90,10 +89,11 @@ func main() {
 	api.Get("/config/:name", func(c *fiber.Ctx) error {
 		filename := c.Params("name")
 
-		if file, err := ioutil.ReadFile(path.Join(configDir, filename)); err != nil {
+		if file, err := os.ReadFile(path.Join(configDir, filename)); err != nil {
 			return resp(c, 404, "Invalid config file")
 		} else {
-			return c.Status(200).JSON(string(file))
+			c.Set("Content-Type", "application/json")
+			return c.Status(200).Send(file)
 		}
 	})
 
@@ -107,7 +107,7 @@ func main() {
 
 		filePath := path.Join(configDir, filename)
 		log.Printf("Writing file %s to path %s", filename, filePath)
-		if err := ioutil.WriteFile(filePath, fileContent, 0777); err != nil {
+		if err := os.WriteFile(filePath, fileContent, 0777); err != nil {
 			return resp(c, 400, "Invalid filetype")
 		}
 		return resp(c, 200, "Config updated!")
@@ -130,7 +130,7 @@ func main() {
 			return resp(c, 400, message)
 		}
 
-		if err := ioutil.WriteFile(filePath, fileContent, 0777); err != nil {
+		if err := os.WriteFile(filePath, fileContent, 0777); err != nil {
 			return resp(c, 400, "Invalid filetype")
 		}
 		return resp(c, 200, "Config created!")
