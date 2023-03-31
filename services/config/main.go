@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/redsuperbat/rsb-config/services/config/auth"
 	"k8s.io/utils/strings/slices"
 )
@@ -79,6 +80,8 @@ func main() {
 	api := app.Group("/api")
 
 	api.Use(authMiddleware)
+
+	app.Use(logger.New())
 
 	api.Get("/configNames", func(c *fiber.Ctx) error {
 		files, _ := os.ReadDir(configDir)
@@ -191,9 +194,6 @@ func main() {
 		c.BodyParser(&Creds)
 		username := os.Getenv("RSB_ADMIN_USERNAME")
 		password := os.Getenv("RSB_ADMIN_PASSWORD")
-
-		log.Println("User", Creds.Username, "logging in...")
-		log.Println(Creds, username, password)
 
 		if Creds.Password != password {
 			return resp(c, 401)
