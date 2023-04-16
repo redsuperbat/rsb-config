@@ -5,8 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
-	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -16,41 +15,51 @@ const (
 	tokenFilePath = "./tokens"
 )
 
-func IsTokenValid(token string) (bool, error) {
-	f, err := os.OpenFile(tokenFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	defer f.Close()
+func validateTokenTimestamp(serverToken string) bool {
+	dateString := strings.Split(serverToken, "~")[1]
+	date, err := time.Parse(time.RFC3339, dateString)
 	if err != nil {
-		return false, err
+		log.Println(err)
+		return false
 	}
+	if date.Unix() < time.Now().Unix() {
+		return false
+	}
+	return true
+}
+
+func IsTokenValid(clientToken string) bool {
+	f, err := os.Open(tokenFilePath)
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+	defer f.Close()
 	s := bufio.NewScanner(f)
 	for s.Scan() {
-		tokenAndDate := s.Text()
-		fileToken := strings.Split(tokenAndDate, "~")[0]
-		if hashToken(token) != fileToken {
+		serverToken := s.Text()
+		serverHash := strings.Split(serverToken, "~")[0]
+		clientHash := hashToken(clientToken)
+		if clientHash != serverHash {
 			continue
 		}
-
-		dateString := strings.Split(tokenAndDate, "~")[1]
-		date, err := time.Parse(time.RFC3339, dateString)
-		if err != nil {
-			return false, err
-		}
-		if token == fileToken && date.Unix() < time.Now().Unix() {
-			return false, errors.New("Token expired")
-		}
+		return validateTokenTimestamp(serverToken)
 	}
-	return true, err
+	if err := s.Err(); err != nil {
+		log.Println(err)
+	}
+	return false
 }
 
 func GenerateToken(expireDate time.Time, meta string) (string, error) {
 	token := generateSecureToken(32)
 	hashedToken := hashToken(token)
 	f, err := os.OpenFile(tokenFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	defer f.Close()
 
 	if err != nil {
 		return "", err
 	}
+	defer f.Close()
 
 	line := hashedToken + "~" + expireDate.Format(time.RFC3339) + "~" + meta + "\n"
 
@@ -62,7 +71,7 @@ func GenerateToken(expireDate time.Time, meta string) (string, error) {
 }
 
 func GetTokens() ([]string, error) {
-	file, err := ioutil.ReadFile(tokenFilePath)
+	file, err := os.ReadFile(tokenFilePath)
 	if err != nil {
 		return nil, err
 	}

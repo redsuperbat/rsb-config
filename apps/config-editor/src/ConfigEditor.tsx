@@ -1,30 +1,53 @@
 import Editor from "@monaco-editor/react";
 import { editor } from "monaco-editor";
 import { Button } from "primereact/button";
+import { Dialog } from "primereact/dialog";
 import { Dropdown } from "primereact/dropdown";
 import { InputText } from "primereact/inputtext";
+import { MenuItem } from "primereact/menuitem";
 import { ProgressSpinner } from "primereact/progressspinner";
+import { SplitButton } from "primereact/splitbutton";
 import { Toast } from "primereact/toast";
-import { useRef, useState } from "react";
+import { FC, useRef, useState } from "react";
 import { useMutation, useQuery } from "react-query";
 import {
   createConfig,
+  generateApiKey,
   getConfigByName,
   getConfigNames,
   setConfigByName,
 } from "./api";
 
-export const ConfigEditor = () => {
+type Props = {
+  onLogout: () => void;
+};
+
+export const ConfigEditor: FC<Props> = ({ onLogout }) => {
   const editorRef = useRef<editor.ICodeEditor>();
   const toast = useRef<Toast>(null);
   const [value, setValue] = useState("");
   const [selectedConfig, setSelectedConfig] = useState<string>();
   const [createConfigName, setCreateConfigName] = useState<string>("");
+  const genApiKey = useMutation(generateApiKey);
+
+  const items: MenuItem[] = [
+    {
+      label: "Logout",
+      icon: "pi pi-sign-out",
+      command: () => onLogout(),
+    },
+    {
+      label: "Generate Api Key",
+      icon: "pi pi-sitemap",
+      command: () => genApiKey.mutateAsync(),
+    },
+  ];
 
   useQuery(
     ["config-data", selectedConfig],
     ({ queryKey }) => getConfigByName(queryKey[1]!),
     {
+      refetchOnWindowFocus: false,
       enabled: !!selectedConfig,
       onSuccess(data) {
         setValue(data);
@@ -33,6 +56,7 @@ export const ConfigEditor = () => {
   );
 
   const configNames = useQuery("config-names", getConfigNames, {
+    refetchOnWindowFocus: false,
     onSuccess(data) {
       setSelectedConfig(data[0]);
     },
@@ -99,11 +123,13 @@ export const ConfigEditor = () => {
   const ConfigSelect = () => {
     if (configNames.isLoading) {
       return (
-        <ProgressSpinner
-          style={{ width: "25px", height: "25px" }}
-          strokeWidth="8"
-          animationDuration=".5s"
-        />
+        <div className="w-7 h-7">
+          <ProgressSpinner
+            style={{ width: "28px", height: "28px" }}
+            strokeWidth="8"
+            animationDuration=".5s"
+          />
+        </div>
       );
     }
 
@@ -136,41 +162,59 @@ export const ConfigEditor = () => {
   }
 
   return (
-    <div className="p-2 bg-slate-100">
-      <Toast ref={toast} />
-      <header className="flex mb-2 justify-between">
-        <ConfigSelect />
-
-        <div className="flex gap-1">
-          <InputText
-            placeholder="Config name"
-            onChange={(e) => setCreateConfigName(e.target.value)}
-            value={createConfigName}
-          />
-          <Button
-            loading={createConfigMut.isLoading}
-            onClick={() => createConfigMut.mutate(createConfigName)}
-          >
-            Create config
-          </Button>
+    <>
+      <Dialog
+        visible={!!genApiKey.data}
+        header="API key"
+        onHide={() => genApiKey.reset()}
+      >
+        <h1 className="mb-5">
+          Save the api key in a safe place. It will not be shown again.
+        </h1>
+        <div className="bg-gray-800 p-4 rounded-md">
+          <pre className="text-white font-mono">
+            <code className="whitespace-pre-wrap">
+              {genApiKey.data?.apiKey}
+            </code>
+          </pre>
         </div>
+      </Dialog>
+      <div className="p-2 bg-slate-100">
+        <Toast ref={toast} />
+        <header className="flex mb-2 justify-between items-center">
+          <ConfigSelect />
 
-        <Button
-          loading={setConfig.isLoading}
-          onClick={() => setConfig.mutate()}
-        >
-          Update config
-        </Button>
-      </header>
-      <div className="border">
-        <Editor
-          height="90vh"
-          defaultLanguage="json"
-          value={value}
-          defaultValue={value}
-          onMount={handleEditorDidMount}
-        />
+          <div className="flex gap-1">
+            <InputText
+              placeholder="Config name"
+              onChange={(e) => setCreateConfigName(e.target.value)}
+              value={createConfigName}
+            />
+            <Button
+              loading={createConfigMut.isLoading}
+              onClick={() => createConfigMut.mutate(createConfigName)}
+            >
+              Create config
+            </Button>
+          </div>
+
+          <SplitButton
+            label="Save"
+            icon="pi pi-check"
+            model={items}
+            onClick={() => setConfig.mutateAsync()}
+          />
+        </header>
+        <div className="border">
+          <Editor
+            height="90vh"
+            defaultLanguage="json"
+            value={value}
+            defaultValue={value}
+            onMount={handleEditorDidMount}
+          />
+        </div>
       </div>
-    </div>
+    </>
   );
 };

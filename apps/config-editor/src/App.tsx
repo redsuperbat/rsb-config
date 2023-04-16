@@ -10,5 +10,12 @@ export const App: React.FC = () => {
     return <Login onLogin={(it) => setToken(it)} />;
   }
 
-  return <ConfigEditor />;
+  return (
+    <ConfigEditor
+      onLogout={() => {
+        TokenStore.clear();
+        setToken(TokenStore.get());
+      }}
+    />
+  );
 };

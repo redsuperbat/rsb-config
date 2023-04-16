@@ -53,17 +53,14 @@ func authMiddleware(c *fiber.Ctx) error {
 	if token == "" {
 		return resp(c, 401)
 	}
-	valid, err := auth.IsTokenValid(token)
 
-	if err != nil {
-		log.Print(err.Error())
-		return resp(c, 401)
-	}
+	log.Println("validating token")
+	valid := auth.IsTokenValid(token)
 
 	if !valid {
+		log.Println("token invalid")
 		return resp(c, 401)
 	}
-
 	return c.Next()
 }
 
@@ -74,14 +71,13 @@ func main() {
 	fmt.Print(configDir)
 
 	app := fiber.New()
+	app.Use(logger.New())
 
 	app.Static("/", "./dist")
 
 	api := app.Group("/api")
 
 	api.Use(authMiddleware)
-
-	app.Use(logger.New())
 
 	api.Get("/configNames", func(c *fiber.Ctx) error {
 		files, _ := os.ReadDir(configDir)
@@ -143,45 +139,47 @@ func main() {
 		return resp(c, 200, "Config created!")
 	})
 
-	api.Post("/client-token", func(c *fiber.Ctx) error {
+	api.Post("/generate-api-key", func(c *fiber.Ctx) error {
 		var Body struct {
-			duration time.Time
-			note     string
+			// duration time.Time
+			note string
 		}
 
 		c.BodyParser(&Body)
 
-		if token, err := auth.GenerateToken(Body.duration, "client_"+Body.note); err != nil {
+		duration := time.Now().AddDate(1, 0, 0)
+
+		if apiKey, err := auth.GenerateToken(duration, "api_key_"+Body.note); err != nil {
 			log.Print(err.Error())
 			return resp(c, 500)
 		} else {
 			return c.Status(200).JSON(&fiber.Map{
-				"token": token,
+				"apiKey": apiKey,
 			})
 		}
 	})
 
-	api.Get("/client-token", func(c *fiber.Ctx) error {
+	api.Get("/api-keys", func(c *fiber.Ctx) error {
 		tokens, err := auth.GetTokens()
 		if err != nil {
 			log.Print(err.Error())
 			return resp(c, 500)
 		}
 
-		type ClientToken struct {
+		type ApiKey struct {
 			Note string `json:"note"`
 			Id   string `json:"id"`
 		}
 
-		clientTokens := []ClientToken{}
+		apiKeys := []ApiKey{}
 		for _, token := range tokens {
-			if strings.Contains(strings.Split(token, "~")[2], "client") {
-				note := strings.Split(token, "~")[2][len("client_"):]
+			if strings.Contains(strings.Split(token, "~")[2], "api_key") {
+				note := strings.Split(token, "~")[2][len("api_key_"):]
 				id := strings.Split(token, "~")[0]
-				clientTokens = append(clientTokens, ClientToken{Note: note, Id: id})
+				apiKeys = append(apiKeys, ApiKey{Note: note, Id: id})
 			}
 		}
-		return c.Status(200).JSON(clientTokens)
+		return c.Status(200).JSON(apiKeys)
 	})
 
 	authGroup := app.Group("/auth")

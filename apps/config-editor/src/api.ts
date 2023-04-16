@@ -5,6 +5,12 @@ type ErrorMsg = {
   code: number;
 };
 
+class NetworkError extends Error {
+  constructor(public code: number, public message: string) {
+    super(message);
+  }
+}
+
 const isErrorMsg = (data: unknown): data is ErrorMsg =>
   typeof data === "object" && data !== null && "message" in data;
 
@@ -29,9 +35,9 @@ const baseFetch = async <T = unknown>(
   if (!res.ok) {
     let message = "Unknown error occurred!";
     if (isErrorMsg(data)) {
-      message = data.message;
+      throw new NetworkError(data.code, data.message);
     }
-    throw new Error(message);
+    throw new NetworkError(res.status, message);
   }
 
   return data;
@@ -51,6 +57,7 @@ const Fetch = {
 
 export const getConfigNames = () => Fetch.get<string[]>("/api/configNames");
 
+// This does not make the assumption that it's json
 export const getConfigByName = async (configName: string) => {
   const res = await fetch(`/api/config/${configName}`, {
     headers: {
@@ -74,3 +81,6 @@ export const loginApi = (username: string, password: string) =>
     username,
     password,
   });
+
+export const generateApiKey = () =>
+  Fetch.post<{ apiKey: string }>("/api/generate-api-key");

@@ -6,4 +6,7 @@ export const TokenStore = {
   set(token: string) {
     localStorage.setItem("token", token);
   },
+  clear() {
+    localStorage.clear();
+  },
 };
