@@ -1,12 +1,15 @@
 import { createMutation, createQuery } from "@tanstack/solid-query";
 import { editor } from "monaco-editor";
-import { MenuItem } from "primereact/menuitem";
-import { ProgressSpinner } from "primereact/progressspinner";
-import { SplitButton } from "primereact/splitbutton";
-import { Toast } from "primereact/toast";
-import { FC, useRef, useState } from "react";
-import { Button, Dropdown, DropdownButton, Form, Modal } from "solid-bootstrap";
-import { For } from "solid-js";
+import {
+  Button,
+  Dropdown,
+  DropdownButton,
+  Form,
+  Modal,
+  Spinner,
+  SplitButton,
+} from "solid-bootstrap";
+import { Component, For, Match, Switch, createSignal } from "solid-js";
 import {
   createConfig,
   generateApiKey,
@@ -14,38 +17,39 @@ import {
   getConfigNames,
   setConfigByName,
 } from "./api/http-client";
+import { ToastService } from "./services/toast-service";
 
 type Props = {
   onLogout: () => void;
 };
 
-export const ConfigEditor: FC<Props> = ({ onLogout }) => {
-  const editorRef = useRef<editor.ICodeEditor>();
-  const toast = useRef<Toast>(null);
-  const [value, setValue] = useState("");
-  const [selectedConfig, setSelectedConfig] = useState<string>();
-  const [createConfigName, setCreateConfigName] = useState<string>("");
+export const ConfigEditor: Component<Props> = ({ onLogout }) => {
+  // const editorRef = useRef<editor.ICodeEditor>();
+  const [value, setValue] = createSignal("");
+  const [selectedConfig, setSelectedConfig] = createSignal<string>();
+  const [createConfigName, setCreateConfigName] = createSignal("");
   const genApiKey = createMutation(generateApiKey);
 
-  const items: MenuItem[] = [
+  const items = [
     {
       label: "Logout",
-      icon: "pi pi-sign-out",
       command: () => onLogout(),
     },
     {
       label: "Generate Api Key",
-      icon: "pi pi-sitemap",
       command: () => genApiKey.mutateAsync(),
     },
   ];
 
   createQuery(
     () => ["config-data", selectedConfig],
-    ({ queryKey }) => getConfigByName(queryKey[1]!),
+    ({ queryKey }) => {
+      const key = queryKey.at(0);
+      return getConfigByName(typeof key === "string" ? key : key());
+    },
     {
       refetchOnWindowFocus: false,
-      enabled: !!selectedConfig,
+      enabled: !!selectedConfig(),
       onSuccess(data) {
         setValue(data);
       },
@@ -55,99 +59,84 @@ export const ConfigEditor: FC<Props> = ({ onLogout }) => {
   const configNames = createQuery(() => ["config-names"], getConfigNames, {
     refetchOnWindowFocus: false,
     onSuccess(data) {
+      if (!data.length) return;
       setSelectedConfig(data[0]);
     },
   });
   // Mutations
   const setConfig = createMutation(
     async () => {
-      const editorValue = editorRef.current?.getValue();
+      const editorValue = "";
       if (!editorValue) return;
       if (editorValue === value) return;
       if (!selectedConfig) return;
       JSON.parse(editorValue);
-      return setConfigByName(selectedConfig, editorValue);
+      return setConfigByName(selectedConfig(), editorValue);
     },
     {
       onSuccess() {
-        toast?.current?.show({
-          severity: "success",
-          summary: "Success",
-          detail: `Config ${selectedConfig} updated!`,
-          life: 3000,
+        ToastService.show("Success", {
+          body: `Config ${selectedConfig} updated!`,
         });
       },
       onError(error) {
         const message =
           error instanceof Error ? error.message : "Unknown error";
-        toast?.current?.show({
-          severity: "error",
-          summary: "Error",
-          detail: `Unable to update config because of: [${message}]`,
-          life: 3000,
+        ToastService.show("Error", {
+          severity: "danger",
+          body: `Unable to update config because of: [${message}]`,
         });
       },
     }
   );
 
-  const createConfigMut = createMutation(
-    (configName: string) => createConfig(configName),
-    {
-      onSuccess(_, name) {
-        configNames.refetch();
-        toast?.current?.show({
-          severity: "success",
-          summary: "Success",
-          detail: `Successfully created config ${name}!`,
-          life: 3000,
-        });
+  const createConfigMut = createMutation(createConfig, {
+    onSuccess(_, name) {
+      console.log({ name });
+      configNames.refetch();
+      ToastService.show("Success", {
+        body: `Successfully created config ${name}!`,
+      });
 
-        setCreateConfigName("");
-      },
-      onError(error) {
-        const message =
-          error instanceof Error ? error.message : "Unknown error";
-        toast?.current?.show({
-          severity: "error",
-          summary: "Error",
-          detail: message,
-          life: 3000,
-        });
-      },
-    }
-  );
+      setCreateConfigName("");
+    },
+    onError(error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      console.log({ message });
+
+      ToastService.show("Error", {
+        severity: "danger",
+        body: message,
+      });
+    },
+  });
 
   const ConfigSelect = () => {
-    if (configNames.isLoading) {
-      return (
-        <div class="w-7 h-7">
-          <ProgressSpinner
-            style={{ width: "28px", height: "28px" }}
-            strokeWidth="8"
-            animationDuration=".5s"
-          />
-        </div>
-      );
-    }
-
-    if (!configNames.data) {
-      return <div>Unable to fetch config names</div>;
-    }
-
     return (
-      <DropdownButton
-        onSelect={(e) => setSelectedConfig(e)}
-        title="Select config"
-      >
-        <For each={configNames.data}>
-          {(it) => <Dropdown.Item eventKey={it}>{it}</Dropdown.Item>}
-        </For>
-      </DropdownButton>
+      <Switch>
+        <Match when={configNames.isLoading}>
+          <div class="w-7 h-7">
+            <Spinner animation="border" />
+          </div>
+        </Match>
+        <Match when={configNames.isError}>
+          <div>Unable to fetch config names</div>
+        </Match>
+        <Match when={configNames.data}>
+          <DropdownButton
+            onSelect={(e) => setSelectedConfig(e)}
+            title="Select config"
+          >
+            <For each={configNames.data}>
+              {(it) => <Dropdown.Item eventKey={it}>{it}</Dropdown.Item>}
+            </For>
+          </DropdownButton>
+        </Match>
+      </Switch>
     );
   };
 
   function handleEditorDidMount(editor: editor.ICodeEditor) {
-    editorRef.current = editor;
     editor.onKeyDown((e) => {
       if (!e.metaKey) return;
       if (e.keyCode !== 49) return;
@@ -159,17 +148,17 @@ export const ConfigEditor: FC<Props> = ({ onLogout }) => {
   return (
     <>
       <Modal show={!!genApiKey.data} centered onHide={() => genApiKey.reset()}>
-        <h1 class="mb-5">
-          Save the api key in a safe place. It will not be shown again.
-        </h1>
-        <div class="bg-gray-800 p-4 rounded-md">
-          <pre class="text-white font-mono">
-            <code class="whitespace-pre-wrap">{genApiKey.data?.apiKey}</code>
-          </pre>
-        </div>
+        <Modal.Body>
+          <h4>API Key</h4>
+          <p>Save the api key in a safe place. It will not be shown again.</p>
+          <div class="bg-gray-800 p-4 rounded-md">
+            <pre class="text-white font-mono mb-0">
+              <code class="whitespace-pre-wrap">{genApiKey.data?.apiKey}</code>
+            </pre>
+          </div>
+        </Modal.Body>
       </Modal>
       <div class="p-2 bg-slate-100">
-        <Toast ref={toast} />
         <header class="flex mb-2 justify-between items-center">
           <ConfigSelect />
 
@@ -178,26 +167,36 @@ export const ConfigEditor: FC<Props> = ({ onLogout }) => {
               placeholder="Config name"
               onChange={(e) => setCreateConfigName(e.target.value)}
             />
-            <Button onClick={() => createConfigMut.mutate(createConfigName)}>
-              Create config
+            <Button
+              class="whitespace-nowrap"
+              onClick={() => createConfigMut.mutate(createConfigName())}
+            >
+              <Spinner
+                as="span"
+                animation="border"
+                hidden={!createConfigMut.isLoading}
+              />
+              Create new config
             </Button>
           </div>
 
-          <SplitButton
-            label="Save"
-            icon="pi pi-check"
-            model={items}
-            onClick={() => setConfig.mutateAsync()}
-          />
+          <SplitButton title="Save" onClick={() => setConfig.mutateAsync()}>
+            <For each={items}>
+              {(it) => (
+                <Dropdown.Item onClick={it.command}>{it.label}</Dropdown.Item>
+              )}
+            </For>
+          </SplitButton>
         </header>
         <div class="border">
+          {/* {editor.}
           <Editor
             height="90vh"
             defaultLanguage="json"
             value={value}
             defaultValue={value}
             onMount={handleEditorDidMount}
-          />
+          /> */}
         </div>
       </div>
     </>

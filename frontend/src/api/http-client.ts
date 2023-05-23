@@ -31,7 +31,6 @@ const baseFetch = async <T = unknown>(
     },
   });
   const data = (await res.json()) as T;
-
   if (!res.ok) {
     let message = "Unknown error occurred!";
     if (isErrorMsg(data)) {

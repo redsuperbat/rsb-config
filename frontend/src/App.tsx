@@ -1,26 +1,41 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/solid-query";
-import { Component, createSignal } from "solid-js";
+import { Toast } from "solid-bootstrap";
+import { Component, Match, Show, Switch } from "solid-js";
 import { ConfigEditor } from "./Editor";
 import { Login } from "./Login";
 import { TokenStore } from "./api/token";
+import { ToastService } from "./services/toast-service";
 
 const client = new QueryClient();
 
 export const App: Component = () => {
-  const [token, setToken] = createSignal(TokenStore.get());
-
-  if (!token) {
-    return <Login onLogin={(it) => setToken(it)} />;
+  if (!TokenStore.get()) {
+    return;
   }
 
   return (
-    <QueryClientProvider client={client}>
-      <ConfigEditor
-        onLogout={() => {
-          TokenStore.clear();
-          setToken(TokenStore.get());
-        }}
-      />
-    </QueryClientProvider>
+    <Switch>
+      <Match when={!TokenStore.get()}>
+        <Login onLogin={(it) => TokenStore.set(it)} />;
+      </Match>
+      <Match when={TokenStore.get()}>
+        <QueryClientProvider client={client}>
+          <div class="relative">
+            <div class="absolute top-10 right-5 z-50">
+              <Toast
+                show={ToastService.state().show}
+                bg={ToastService.state().severity}
+              >
+                <Toast.Header>{ToastService.state().header}</Toast.Header>
+                <Show when={ToastService.state().body}>
+                  <Toast.Body>{ToastService.state().body}</Toast.Body>
+                </Show>
+              </Toast>
+            </div>
+            <ConfigEditor onLogout={() => TokenStore.clear()} />
+          </div>
+        </QueryClientProvider>
+      </Match>
+    </Switch>
   );
 };

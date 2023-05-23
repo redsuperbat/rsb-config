@@ -1,12 +1,19 @@
+import { createEffect, createSignal } from "solid-js";
+const key = "token";
+
+const [token, setToken] = createSignal(localStorage.getItem(key));
+
+createEffect(() => {
+  localStorage.setItem(key, token());
+});
+
 export const TokenStore = {
-  get() {
-    const token = localStorage.getItem("token");
-    return token ?? "";
-  },
+  get: token,
   set(token: string) {
-    localStorage.setItem("token", token);
+    setToken(token);
   },
+  hasToken: () => !!token(),
   clear() {
-    localStorage.clear();
+    setToken("");
   },
 };

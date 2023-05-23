@@ -29,7 +29,7 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 tmp
-
+.vscode
 # turbo
 .turbo
 # Binaries for programs and plugins
