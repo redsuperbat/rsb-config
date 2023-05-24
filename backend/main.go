@@ -111,7 +111,8 @@ func main() {
 		filePath := path.Join(configDir, filename)
 		log.Printf("Writing file %s to path %s", filename, filePath)
 		if err := os.WriteFile(filePath, fileContent, 0777); err != nil {
-			return resp(c, 400, "Invalid filetype")
+			c.Context().Logger().Printf("%s", err.Error())
+			return resp(c, 500)
 		}
 		return resp(c, 200, "Config updated!")
 	})
@@ -134,7 +135,7 @@ func main() {
 		}
 
 		if err := os.WriteFile(filePath, fileContent, 0777); err != nil {
-			return resp(c, 400, "Invalid filetype")
+			return resp(c, 500)
 		}
 		return resp(c, 200, "Config created!")
 	})

@@ -1,4 +1,4 @@
-import { TokenStore } from "./token";
+import { TokenStore } from "../stores/token-store";
 
 type ErrorMsg = {
   message: string;
@@ -69,8 +69,13 @@ export const getConfigByName = async (configName: string) => {
   return res.text();
 };
 
-export const setConfigByName = (configName: string, config: string) =>
-  Fetch.put(`/api/config/${configName}`, config);
+export const setConfigByName = ({
+  config,
+  configName,
+}: {
+  configName: string;
+  config: string;
+}) => Fetch.put(`/api/config/${configName}`, config);
 
 export const createConfig = (configName: string) =>
   Fetch.post(`/api/config/${configName}`);

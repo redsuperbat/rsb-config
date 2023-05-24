@@ -1,11 +1,13 @@
 import { createSignal } from "solid-js";
 
-const [showToast, setShowToast] = createSignal<{
-  header?: string;
-  body?: string;
-  show: boolean;
+type Toast = {
+  header: string;
+  body: string;
   severity?: "success" | "danger" | "warning";
-}>({ show: false });
+  id: string;
+};
+
+const [showToast, setShowToast] = createSignal<Toast[]>([]);
 
 export const ToastService = {
   show(
@@ -13,8 +15,14 @@ export const ToastService = {
     options?: { body?: string; severity?: "success" | "danger" | "warning" }
   ) {
     const { severity = "success", body } = options ?? {};
-    setShowToast({ show: true, header, body, severity });
-    setTimeout(() => setShowToast({ show: false }), 5000);
+    const id = Math.round(Math.random() * 100_000).toString();
+    const data = { body, severity, header, id };
+    setShowToast((it) => [...it, data]);
+
+    setTimeout(
+      () => setShowToast((it) => it.filter((it) => it.id !== data.id)),
+      5000
+    );
   },
   state: showToast,
 };

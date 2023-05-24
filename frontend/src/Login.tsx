@@ -1,7 +1,7 @@
 import { Button, Form } from "solid-bootstrap";
 import { createSignal } from "solid-js";
 import { loginApi } from "./api/http-client";
-import { TokenStore } from "./api/token";
+import { TokenStore } from "./stores/token-store";
 
 export const Login = (props: { onLogin: (token: string) => void }) => {
   const [username, setUsername] = createSignal("");
