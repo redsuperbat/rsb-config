@@ -14,6 +14,7 @@ terraform {
 locals {
   namespace = "rsb-config"
   name      = "rsb-config"
+  hosts     = ["config.rsb.home"]
 }
 
 variable "image_tag" {
@@ -86,9 +87,37 @@ resource "kubernetes_service_v1" "service" {
       port        = 3003
       target_port = 3003
     }
-
   }
+}
 
+resource "kubernetes_ingress_v1" "ing" {
+
+  metadata {
+    name      = local.name
+    namespace = local.namespace
+  }
+  
+
+  spec {
+    dynamic "rule" {
+      for_each = toset(local.hosts)
+      content {
+        host = rule.value
+        http {
+          path {
+            backend {
+              service {
+                port {
+                  number = kubernetes_service_v1.service.spec[0].port[0].port
+                }
+                name = kubernetes_service_v1.service.metadata[0].name
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 resource "kubernetes_deployment_v1" "deploy" {
