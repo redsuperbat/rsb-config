@@ -30,7 +30,6 @@ provider "kubernetes" {
   config_path = "~/.kube/config"
 }
 
-provider "random" {}
 
 resource "kubernetes_namespace_v1" "ns" {
   metadata {
@@ -96,7 +95,7 @@ resource "kubernetes_ingress_v1" "ing" {
     name      = local.name
     namespace = local.namespace
   }
-  
+
 
   spec {
     dynamic "rule" {
@@ -154,6 +153,10 @@ resource "kubernetes_deployment_v1" "deploy" {
               cpu    = "100m"
               memory = "30Mi"
             }
+            requests = {
+              cpu    = "20m"
+              memory = "5Mi"
+            }
           }
           volume_mount {
             name       = local.name
@@ -174,5 +177,5 @@ resource "kubernetes_deployment_v1" "deploy" {
 }
 
 output "rsb_config_url" {
-  value = "http://${kubernetes_service_v1.service.metadata[0].name}.${kubernetes_service_v1.service.metadata[0].namespace}.svc.cluster.local:3003"
+  value = "http://${local.name}.${local.namespace}.svc.cluster.local:3003"
 }
